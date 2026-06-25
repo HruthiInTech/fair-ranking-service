@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Risk Ledger — Fair Ranking Console</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0B0E11;
+    --surface:#11151A;
+    --surface-2:#161B21;
+    --line:#222932;
+    --text:#E7ECEF;
+    --muted:#6B7785;
+    --green:#2BD97C;
+    --green-dim:#173B2A;
+    --amber:#FF9F40;
+    --amber-dim:#3D2C16;
+    --red:#FF5C5C;
+    --radius:3px;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--bg);
+    color:var(--text);
+    font-family:'Inter',sans-serif;
+    font-size:14px;
+    line-height:1.5;
+    min-height:100vh;
+  }
+  .wrap{max-width:1080px;margin:0 auto;padding:28px 20px 60px;}
+
+  header{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:14px;margin-bottom:28px;border-bottom:1px solid var(--line);padding-bottom:20px;}
+  header h1{
+    font-family:'Space Grotesk',sans-serif;
+    font-size:22px;font-weight:700;letter-spacing:0.01em;margin:0;
+    display:flex;align-items:center;gap:10px;
+  }
+  header h1 .dot{width:8px;height:8px;border-radius:50%;background:var(--green);box-shadow:0 0 8px var(--green);}
+  header p{margin:4px 0 0;color:var(--muted);font-size:12.5px;letter-spacing:0.02em;text-transform:uppercase;}
+  .api-config{display:flex;gap:8px;align-items:center;}
+  .api-config input{
+    background:var(--surface-2);border:1px solid var(--line);color:var(--text);
+    font-family:'IBM Plex Mono',monospace;font-size:12px;padding:7px 10px;border-radius:var(--radius);
+    width:240px;
+  }
+  .api-config span{font-size:11px;color:var(--muted);font-family:'IBM Plex Mono',monospace;}
+  .status-pill{font-size:11px;font-family:'IBM Plex Mono',monospace;padding:3px 8px;border-radius:var(--radius);border:1px solid var(--line);color:var(--muted);}
+  .status-pill.ok{color:var(--green);border-color:var(--green-dim);background:var(--green-dim);}
+  .status-pill.bad{color:var(--red);border-color:#3d1616;background:#241010;}
+
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:18px;}
+  @media (max-width:760px){.grid{grid-template-columns:1fr;}}
+
+  .panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:20px;}
+  .panel h2{
+    font-family:'Space Grotesk',sans-serif;font-size:14px;font-weight:600;
+    text-transform:uppercase;letter-spacing:0.05em;color:var(--muted);margin:0 0 16px;
+    display:flex;align-items:center;justify-content:space-between;
+  }
+  .field{margin-bottom:12px;}
+  .field label{display:block;font-size:11.5px;color:var(--muted);margin-bottom:5px;letter-spacing:0.02em;}
+  .field input, .field select{
+    width:100%;background:var(--surface-2);border:1px solid var(--line);color:var(--text);
+    padding:9px 10px;border-radius:var(--radius);font-family:'IBM Plex Mono',monospace;font-size:13px;
+  }
+  .field input:focus, .field select:focus{outline:none;border-color:var(--green);}
+  .row2{display:flex;gap:10px;}
+  .row2 > .field{flex:1;}
+  .idem-row{display:flex;gap:8px;align-items:flex-end;}
+  .idem-row .field{flex:1;}
+  .btn-icon{
+    background:var(--surface-2);border:1px solid var(--line);color:var(--muted);
+    padding:9px 11px;border-radius:var(--radius);cursor:pointer;font-size:12px;height:38px;
+  }
+  .btn-icon:hover{color:var(--text);border-color:var(--green);}
+
+  button.primary{
+    width:100%;background:var(--green);color:#06140C;border:none;
+    font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:13px;
+    padding:11px;border-radius:var(--radius);cursor:pointer;letter-spacing:0.02em;margin-top:4px;
+  }
+  button.primary:hover{filter:brightness(1.08);}
+  button.primary:disabled{background:var(--muted);cursor:not-allowed;}
+
+  .log{
+    margin-top:14px;background:#080A0C;border:1px solid var(--line);border-radius:var(--radius);
+    padding:12px;font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:var(--muted);
+    max-height:160px;overflow:auto;white-space:pre-wrap;
+  }
+  .log .ok{color:var(--green);}
+  .log .err{color:var(--red);}
+  .log .dup{color:var(--amber);}
+
+  .summary-result{margin-top:14px;}
+  .score-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px;}
+  .score-card{background:var(--surface-2);border:1px solid var(--line);border-radius:var(--radius);padding:10px 12px;}
+  .score-card .label{font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:0.04em;}
+  .score-card .value{font-family:'IBM Plex Mono',monospace;font-size:17px;margin-top:3px;}
+  .empty-hint{color:var(--muted);font-size:12.5px;}
+
+  .ledger{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;}
+  .ledger-head{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--line);}
+  .ledger-head h2{margin:0;font-family:'Space Grotesk',sans-serif;font-size:14px;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;color:var(--muted);}
+  .ledger-controls{display:flex;gap:10px;align-items:center;}
+  .ledger-controls label{font-size:11.5px;color:var(--muted);display:flex;align-items:center;gap:6px;}
+  table{width:100%;border-collapse:collapse;font-family:'IBM Plex Mono',monospace;font-size:12.5px;}
+  thead th{
+    text-align:left;padding:10px 16px;color:var(--muted);font-size:10.5px;text-transform:uppercase;
+    letter-spacing:0.04em;border-bottom:1px solid var(--line);font-weight:500;
+  }
+  tbody td{padding:10px 16px;border-bottom:1px solid var(--line);}
+  tbody tr:last-child td{border-bottom:none;}
+  tbody tr:hover{background:var(--surface-2);}
+  .rank-cell{color:var(--muted);}
+  .trust-bar{width:70px;height:6px;background:#1c2228;border-radius:3px;overflow:hidden;display:inline-block;vertical-align:middle;margin-right:8px;}
+  .trust-bar-fill{height:100%;border-radius:3px;}
+  .badge{font-size:10px;padding:2px 7px;border-radius:3px;letter-spacing:0.03em;text-transform:uppercase;}
+  .badge.trusted{background:var(--green-dim);color:var(--green);}
+  .badge.flagged{background:var(--amber-dim);color:var(--amber);}
+  .footer-note{margin-top:24px;color:var(--muted);font-size:11.5px;line-height:1.7;border-top:1px solid var(--line);padding-top:16px;}
+  .footer-note code{font-family:'IBM Plex Mono',monospace;color:var(--text);background:var(--surface-2);padding:1px 5px;border-radius:2px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div>
+      <h1><span class="dot" id="connDot"></span> RISK LEDGER</h1>
+      <p>Fair ranking console — backend assignment demo</p>
+    </div>
+    <div class="api-config">
+      <span>API BASE</span>
+      <input id="apiBase" type="text" placeholder="http://localhost:8000" />
+      <span class="status-pill" id="connStatus">checking…</span>
+    </div>
+  </header>
+
+  <div class="grid">
+
+    <!-- Submit Transaction -->
+    <div class="panel">
+      <h2>Submit Transaction</h2>
+      <div class="row2">
+        <div class="field">
+          <label>User ID</label>
+          <input id="txUserId" placeholder="alice" value="alice" />
+        </div>
+        <div class="field">
+          <label>Amount</label>
+          <input id="txAmount" type="number" step="0.01" placeholder="100.00" value="100" />
+        </div>
+      </div>
+      <div class="field">
+        <label>Category</label>
+        <select id="txCategory">
+          <option value="general">general</option>
+          <option value="trade">trade</option>
+          <option value="deposit">deposit</option>
+          <option value="reward">reward</option>
+          <option value="adjustment">adjustment</option>
+        </select>
+      </div>
+      <div class="idem-row">
+        <div class="field">
+          <label>Idempotency Key (auto-generated — resend same key to test duplicate prevention)</label>
+          <input id="txIdemKey" readonly />
+        </div>
+        <button class="btn-icon" id="regenKeyBtn" title="Generate new key">↻ new key</button>
+      </div>
+      <button class="primary" id="submitTxBtn">Submit Transaction</button>
+      <div class="log" id="txLog">// responses will appear here</div>
+    </div>
+
+    <!-- Summary Lookup -->
+    <div class="panel">
+      <h2>User Summary &amp; Score</h2>
+      <div class="field">
+        <label>User ID</label>
+        <input id="summaryUserId" placeholder="alice" value="alice" />
+      </div>
+      <button class="primary" id="lookupBtn">Look Up Summary</button>
+      <div class="summary-result" id="summaryResult">
+        <p class="empty-hint">Enter a user ID and look up their current totals, rank, and trust score breakdown.</p>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Live Ranking -->
+  <div class="ledger">
+    <div class="ledger-head">
+      <h2>Live Ranking</h2>
+      <div class="ledger-controls">
+        <label><input type="checkbox" id="autoRefresh" checked /> auto-refresh (5s)</label>
+        <button class="btn-icon" id="refreshBtn">↻ refresh now</button>
+      </div>
+    </div>
+    <table>
+      <thead>
+        <tr><th>Rank</th><th>User</th><th>Total Amount</th><th>Trust</th><th>Final Score</th><th>Status</th></tr>
+      </thead>
+      <tbody id="rankingBody">
+        <tr><td colspan="6" class="empty-hint" style="padding:20px 16px;">No data yet — submit a transaction or check API connection.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="footer-note">
+    Trust = <code>1 / (1 + anomaly_score)</code>. Anomaly score rises when a user fires several identical-amount
+    transactions within a 60s window (a leaderboard-spam signature) and decays 10% with every new transaction.
+    Score = <code>log(1+total) × consistency_weight × trust</code>. A user with the same volume spread across
+    distinct days will outrank one who bursts the same volume in seconds.
+  </div>
+
+</div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+
+function loadApiBase(){
+  const saved = localStorage.getItem('riskledger_api_base') || 'http://localhost:8000';
+  $('apiBase').value = saved;
+  return saved;
+}
+function apiBase(){
+  const v = $('apiBase').value.trim().replace(/\/$/, '');
+  localStorage.setItem('riskledger_api_base', v);
+  return v;
+}
+loadApiBase();
+
+function newIdemKey(){
+  $('txIdemKey').value = crypto.randomUUID();
+}
+newIdemKey();
+$('regenKeyBtn').addEventListener('click', newIdemKey);
+
+function logLine(el, text, cls){
+  const span = document.createElement('div');
+  if(cls) span.className = cls;
+  span.textContent = text;
+  el.prepend(span);
+}
+
+async function checkConnection(){
+  const dot = $('connDot');
+  const pill = $('connStatus');
+  try{
+    const res = await fetch(apiBase() + '/');
+    if(!res.ok) throw new Error('bad status');
+    pill.textContent = 'connected';
+    pill.className = 'status-pill ok';
+    dot.style.background = 'var(--green)';
+  }catch(e){
+    pill.textContent = 'unreachable';
+    pill.className = 'status-pill bad';
+    dot.style.background = 'var(--red)';
+  }
+}
+
+$('apiBase').addEventListener('change', () => { apiBase(); checkConnection(); refreshRanking(); });
+
+$('submitTxBtn').addEventListener('click', async () => {
+  const btn = $('submitTxBtn');
+  const log = $('txLog');
+  const body = {
+    user_id: $('txUserId').value.trim(),
+    amount: parseFloat($('txAmount').value),
+    category: $('txCategory').value,
+    idempotency_key: $('txIdemKey').value
+  };
+  btn.disabled = true;
+  try{
+    const res = await fetch(apiBase() + '/transaction', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(body)
+    });
+    const data = await res.json();
+    if(!res.ok){
+      logLine(log, `[${res.status}] ${JSON.stringify(data.detail)}`, 'err');
+    } else if(data.is_duplicate_replay){
+      logLine(log, `[${res.status}] DUPLICATE detected — original transaction returned unchanged (no double count). tx #${data.transaction.id}`, 'dup');
+    } else {
+      logLine(log, `[${res.status}] OK — tx #${data.transaction.id} for ${data.transaction.user_id}: +${data.transaction.amount}. New total: ${data.current_summary.total_amount}`, 'ok');
+      newIdemKey();
+    }
+  }catch(e){
+    logLine(log, `Network error: ${e.message}`, 'err');
+  }finally{
+    btn.disabled = false;
+    refreshRanking();
+  }
+});
+
+$('lookupBtn').addEventListener('click', async () => {
+  const userId = $('summaryUserId').value.trim();
+  const out = $('summaryResult');
+  if(!userId) return;
+  try{
+    const res = await fetch(apiBase() + '/summary/' + encodeURIComponent(userId));
+    const data = await res.json();
+    if(!res.ok){
+      out.innerHTML = `<p class="empty-hint" style="color:var(--red);">${data.detail || 'Error fetching summary'}</p>`;
+      return;
+    }
+    const b = data.score_breakdown;
+    const trustPct = Math.round(b.trust_multiplier * 100);
+    const trustColor = trustPct >= 70 ? 'var(--green)' : (trustPct >= 40 ? 'var(--amber)' : 'var(--red)');
+    out.innerHTML = `
+      <div class="score-grid">
+        <div class="score-card"><div class="label">Rank</div><div class="value">#${data.rank} / ${data.out_of}</div></div>
+        <div class="score-card"><div class="label">Status</div><div class="value" style="color:${data.trust_status === 'trusted' ? 'var(--green)' : 'var(--amber)'}">${data.trust_status}</div></div>
+        <div class="score-card"><div class="label">Total Amount</div><div class="value">${data.total_amount}</div></div>
+        <div class="score-card"><div class="label">Transactions</div><div class="value">${data.transaction_count}</div></div>
+        <div class="score-card"><div class="label">Final Score</div><div class="value">${b.final_score}</div></div>
+        <div class="score-card"><div class="label">Trust Multiplier</div><div class="value" style="color:${trustColor}">${b.trust_multiplier}</div></div>
+        <div class="score-card"><div class="label">Volume Score</div><div class="value">${b.volume_score}</div></div>
+        <div class="score-card"><div class="label">Consistency Weight</div><div class="value">${b.consistency_weight}</div></div>
+      </div>
+    `;
+  }catch(e){
+    out.innerHTML = `<p class="empty-hint" style="color:var(--red);">Network error: ${e.message}</p>`;
+  }
+});
+
+async function refreshRanking(){
+  const body = $('rankingBody');
+  try{
+    const res = await fetch(apiBase() + '/ranking?limit=50');
+    const data = await res.json();
+    if(!res.ok || !data.ranking || data.ranking.length === 0){
+      body.innerHTML = '<tr><td colspan="6" class="empty-hint" style="padding:20px 16px;">No transactions yet.</td></tr>';
+      return;
+    }
+    body.innerHTML = data.ranking.map(r => {
+      const trustColor = r.trust_status === 'trusted' ? 'var(--green)' : 'var(--amber)';
+      const pct = Math.round(r.trust_multiplier * 100);
+      return `<tr>
+        <td class="rank-cell">#${r.rank}</td>
+        <td>${r.user_id}</td>
+        <td>${r.total_amount}</td>
+        <td><span class="trust-bar"><span class="trust-bar-fill" style="width:${pct}%; background:${trustColor};"></span></span>${r.trust_multiplier}</td>
+        <td>${r.final_score}</td>
+        <td><span class="badge ${r.trust_status}">${r.trust_status}</span></td>
+      </tr>`;
+    }).join('');
+  }catch(e){
+    body.innerHTML = `<tr><td colspan="6" class="empty-hint" style="color:var(--red);padding:20px 16px;">Network error: ${e.message}</td></tr>`;
+  }
+}
+
+$('refreshBtn').addEventListener('click', refreshRanking);
+
+let pollHandle = null;
+function setupAutoRefresh(){
+  if(pollHandle) clearInterval(pollHandle);
+  if($('autoRefresh').checked){
+    pollHandle = setInterval(refreshRanking, 5000);
+  }
+}
+$('autoRefresh').addEventListener('change', setupAutoRefresh);
+
+checkConnection();
+refreshRanking();
+setupAutoRefresh();
+setInterval(checkConnection, 8000);
+</script>
+</body>
+</html>
